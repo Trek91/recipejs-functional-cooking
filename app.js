@@ -1,6 +1,9 @@
 // ===============================
 // Part 1: Static Recipe Data
 // ===============================
+let currentFilter = "all";
+let currentSort = null;
+
 const recipes = [
   {
     id: 1,
@@ -103,3 +106,53 @@ const renderRecipes = (recipeList) => {
 // Initialize App
 // ===============================
 renderRecipes(recipes);
+
+const filterByDifficulty = (recipes, level) => {
+  if (level === "all") return recipes;
+  return recipes.filter(recipe => recipe.difficulty === level);
+};
+
+const filterQuickRecipes = (recipes) =>
+  recipes.filter(recipe => recipe.time < 30);
+
+const sortByName = (recipes) =>
+  [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+
+const sortByTime = (recipes) =>
+  [...recipes].sort((a, b) => a.time - b.time);
+
+const updateDisplay = () => {
+  let result = recipes;
+
+  // Apply filters
+  if (currentFilter === "quick") {
+    result = filterQuickRecipes(result);
+  } else {
+    result = filterByDifficulty(result, currentFilter);
+  }
+
+  // Apply sorting
+  if (currentSort === "name") {
+    result = sortByName(result);
+  } else if (currentSort === "time") {
+    result = sortByTime(result);
+  }
+
+  renderRecipes(result);
+};
+
+document.querySelectorAll(".filters button").forEach(button => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
+    updateDisplay();
+  });
+});
+
+document.querySelectorAll(".sort button").forEach(button => {
+  button.addEventListener("click", () => {
+    currentSort = button.dataset.sort;
+    updateDisplay();
+  });
+});
+
+updateDisplay();
