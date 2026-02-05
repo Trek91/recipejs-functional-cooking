@@ -5,9 +5,13 @@ const RecipeApp = (function () {
   // ===============================
   let currentFilter = "all";
   let currentSort = null;
+  let currentSearchTerm = "";
+  let debounceTimer = null;
+
+  let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
 
   // ===============================
-  // Recipe Data (Enhanced)
+  // Recipe Data
   // ===============================
   const recipes = [
     {
@@ -17,13 +21,7 @@ const RecipeApp = (function () {
       difficulty: "easy",
       description: "Quick pasta tossed in garlic butter and herbs.",
       category: "pasta",
-      ingredients: [
-        "Pasta",
-        "Garlic",
-        "Butter",
-        "Salt",
-        "Herbs"
-      ],
+      ingredients: ["Pasta", "Garlic", "Butter", "Salt", "Herbs"],
       steps: [
         "Boil water",
         "Cook pasta",
@@ -34,10 +32,7 @@ const RecipeApp = (function () {
             "Add garlic",
             {
               step: "Finish sauce",
-              substeps: [
-                "Add herbs",
-                "Mix pasta with sauce"
-              ]
+              substeps: ["Add herbs", "Mix pasta with sauce"]
             }
           ]
         }
@@ -50,13 +45,7 @@ const RecipeApp = (function () {
       difficulty: "medium",
       description: "Spiced chicken curry cooked with onions and tomatoes.",
       category: "curry",
-      ingredients: [
-        "Chicken",
-        "Onion",
-        "Tomato",
-        "Spices",
-        "Oil"
-      ],
+      ingredients: ["Chicken", "Onion", "Tomato", "Spices", "Oil"],
       steps: [
         "Heat oil",
         {
@@ -84,7 +73,6 @@ const RecipeApp = (function () {
       time: 15,
       difficulty: "easy",
       description: "Fresh avocado salad with lemon dressing and veggies.",
-      category: "salad",
       ingredients: ["Avocado", "Lettuce", "Lemon", "Salt"],
       steps: ["Chop vegetables", "Mix dressing", "Combine everything"]
     },
@@ -94,7 +82,6 @@ const RecipeApp = (function () {
       time: 50,
       difficulty: "medium",
       description: "Creamy tomato gravy with soft paneer cubes.",
-      category: "curry",
       ingredients: ["Paneer", "Butter", "Tomato", "Cream"],
       steps: ["Prepare gravy", "Add paneer", "Simmer and serve"]
     },
@@ -104,7 +91,6 @@ const RecipeApp = (function () {
       time: 120,
       difficulty: "hard",
       description: "Slow-cooked stew with tender beef and vegetables.",
-      category: "stew",
       ingredients: ["Beef", "Carrot", "Potato", "Spices"],
       steps: ["Brown beef", "Add vegetables", "Slow cook"]
     },
@@ -114,7 +100,6 @@ const RecipeApp = (function () {
       time: 25,
       difficulty: "easy",
       description: "Fast fried rice with mixed vegetables and soy sauce.",
-      category: "rice",
       ingredients: ["Rice", "Vegetables", "Soy Sauce"],
       steps: ["Cook rice", "Stir fry veggies", "Mix rice and sauce"]
     },
@@ -124,7 +109,6 @@ const RecipeApp = (function () {
       time: 90,
       difficulty: "hard",
       description: "Layered pasta bake with sauce, cheese, and filling.",
-      category: "pasta",
       ingredients: ["Lasagna sheets", "Sauce", "Cheese"],
       steps: ["Prepare sauce", "Layer ingredients", "Bake"]
     },
@@ -134,7 +118,6 @@ const RecipeApp = (function () {
       time: 40,
       difficulty: "hard",
       description: "Rich cake with a gooey molten chocolate center.",
-      category: "dessert",
       ingredients: ["Chocolate", "Butter", "Flour", "Eggs"],
       steps: ["Prepare batter", "Bake briefly", "Serve warm"]
     }
@@ -144,13 +127,19 @@ const RecipeApp = (function () {
   // DOM Selection
   // ===============================
   const recipeContainer = document.querySelector("#recipe-container");
+  const searchInput = document.querySelector("#searchInput");
+  const recipeCounter = document.querySelector("#recipeCounter");
 
   // ===============================
   // Create Recipe Card
   // ===============================
   const createRecipeCard = (recipe) => {
+    const isFavorite = favorites.includes(recipe.id);
+
     return `
       <div class="recipe-card" data-id="${recipe.id}">
+        <span class="favorite-btn ${isFavorite ? "active" : ""}">❤️</span>
+
         <h3>${recipe.title}</h3>
 
         <div class="recipe-meta">
@@ -169,13 +158,6 @@ const RecipeApp = (function () {
         <div class="steps hidden"></div>
       </div>
     `;
-  };
-
-  // ===============================
-  // Render Recipes
-  // ===============================
-  const renderRecipes = (list) => {
-    recipeContainer.innerHTML = list.map(createRecipeCard).join("");
   };
 
   // ===============================
@@ -201,12 +183,62 @@ const RecipeApp = (function () {
   // ===============================
   // Ingredients Renderer
   // ===============================
-  const renderIngredients = (ingredients) => {
-    return `
-      <ul>
-        ${ingredients.map(i => `<li>${i}</li>`).join("")}
-      </ul>
-    `;
+  const renderIngredients = (ingredients) => `
+    <ul>
+      ${ingredients.map(i => `<li>${i}</li>`).join("")}
+    </ul>
+  `;
+
+  // ===============================
+  // Filters & Sorting
+  // ===============================
+  const filterByDifficulty = (list, level) =>
+    level === "all" ? list : list.filter(r => r.difficulty === level);
+
+  const filterQuickRecipes = (list) =>
+    list.filter(r => r.time < 30);
+
+  const sortByName = (list) =>
+    [...list].sort((a, b) => a.title.localeCompare(b.title));
+
+  const sortByTime = (list) =>
+    [...list].sort((a, b) => a.time - b.time);
+
+  // ===============================
+  // Render + Counter
+  // ===============================
+  const updateRecipeCounter = (shown, total) => {
+    recipeCounter.textContent = `Showing ${shown} of ${total} recipes`;
+  };
+
+  const updateDisplay = () => {
+    let result = [...recipes];
+
+    // Favorites filter
+    if (currentFilter === "favorites") {
+      result = result.filter(r => favorites.includes(r.id));
+    } else if (currentFilter === "quick") {
+      result = filterQuickRecipes(result);
+    } else {
+      result = filterByDifficulty(result, currentFilter);
+    }
+
+    // Search filter
+    if (currentSearchTerm) {
+      result = result.filter(r =>
+        r.title.toLowerCase().includes(currentSearchTerm) ||
+        r.ingredients.some(i =>
+          i.toLowerCase().includes(currentSearchTerm)
+        )
+      );
+    }
+
+    // Sorting
+    if (currentSort === "name") result = sortByName(result);
+    if (currentSort === "time") result = sortByTime(result);
+
+    recipeContainer.innerHTML = result.map(createRecipeCard).join("");
+    updateRecipeCounter(result.length, recipes.length);
   };
 
   // ===============================
@@ -219,52 +251,26 @@ const RecipeApp = (function () {
     const recipeId = Number(card.dataset.id);
     const recipe = recipes.find(r => r.id === recipeId);
 
+    if (e.target.classList.contains("favorite-btn")) {
+      favorites = favorites.includes(recipeId)
+        ? favorites.filter(id => id !== recipeId)
+        : [...favorites, recipeId];
+
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+      updateDisplay();
+    }
+
     if (e.target.classList.contains("toggle-steps")) {
-      const stepsDiv = card.querySelector(".steps");
-      stepsDiv.innerHTML = renderSteps(recipe.steps);
-      stepsDiv.classList.toggle("hidden");
+      const div = card.querySelector(".steps");
+      div.innerHTML = renderSteps(recipe.steps);
+      div.classList.toggle("hidden");
     }
 
     if (e.target.classList.contains("toggle-ingredients")) {
-      const ingDiv = card.querySelector(".ingredients");
-      ingDiv.innerHTML = renderIngredients(recipe.ingredients);
-      ingDiv.classList.toggle("hidden");
+      const div = card.querySelector(".ingredients");
+      div.innerHTML = renderIngredients(recipe.ingredients);
+      div.classList.toggle("hidden");
     }
-  };
-
-  // ===============================
-  // Filters & Sorting (UNCHANGED)
-  // ===============================
-  const filterByDifficulty = (list, level) => {
-    if (level === "all") return list;
-    return list.filter(r => r.difficulty === level);
-  };
-
-  const filterQuickRecipes = (list) =>
-    list.filter(r => r.time < 30);
-
-  const sortByName = (list) =>
-    [...list].sort((a, b) => a.title.localeCompare(b.title));
-
-  const sortByTime = (list) =>
-    [...list].sort((a, b) => a.time - b.time);
-
-  const updateDisplay = () => {
-    let result = recipes;
-
-    if (currentFilter === "quick") {
-      result = filterQuickRecipes(result);
-    } else {
-      result = filterByDifficulty(result, currentFilter);
-    }
-
-    if (currentSort === "name") {
-      result = sortByName(result);
-    } else if (currentSort === "time") {
-      result = sortByTime(result);
-    }
-
-    renderRecipes(result);
   };
 
   // ===============================
@@ -272,6 +278,7 @@ const RecipeApp = (function () {
   // ===============================
   const init = () => {
     updateDisplay();
+
     recipeContainer.addEventListener("click", handleCardClick);
 
     document.querySelectorAll(".filters button").forEach(btn => {
@@ -286,6 +293,14 @@ const RecipeApp = (function () {
         currentSort = btn.dataset.sort;
         updateDisplay();
       });
+    });
+
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        currentSearchTerm = e.target.value.toLowerCase();
+        updateDisplay();
+      }, 300);
     });
   };
 

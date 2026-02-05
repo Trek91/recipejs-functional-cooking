@@ -32,6 +32,39 @@ header p {
   opacity: 0.95;
 }
 
+/* ===== SEARCH BAR ===== */
+.search-container {
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  padding: 0 1rem;
+}
+
+#searchInput {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* ===== FILTERS & SORT ===== */
+.filters,
+.sort {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+/* ===== RECIPE COUNTER ===== */
+#recipeCounter {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #444;
+}
+
 /* ===== MAIN ===== */
 main {
   max-width: 1200px;
@@ -55,6 +88,7 @@ main {
   padding: 1.5rem;
   width: 300px;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
 }
 
 .recipe-card:hover {
@@ -80,6 +114,27 @@ main {
   color: #555;
   font-size: 0.95rem;
   margin-bottom: 0.75rem;
+}
+
+/* ===== FAVORITE BUTTON ===== */
+.favorite-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.favorite-btn:hover {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.favorite-btn.active {
+  color: red;
+  opacity: 1;
 }
 
 /* ===== DIFFICULTY BADGES ===== */

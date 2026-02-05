@@ -6,24 +6,42 @@
     <title>RecipeJS - Your Functional Cooking Companion</title>
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
     <header>
       <h1>🍳 RecipeJS</h1>
       <p>Your Functional Cooking Companion</p>
     </header>
+
+    <!-- 🔍 Search Bar -->
+    <div class="search-container">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search recipes or ingredients..."
+      />
+    </div>
+
+    <!-- 🧭 Filters -->
     <div class="filters">
       <button data-filter="all">All Recipes</button>
       <button data-filter="easy">Easy</button>
       <button data-filter="medium">Medium</button>
       <button data-filter="hard">Hard</button>
       <button data-filter="quick">Quick (&lt; 30 min)</button>
+      <button data-filter="favorites">❤️ Favorites</button>
     </div>
 
+    <!-- 🔃 Sorting -->
     <div class="sort">
       <button data-sort="name">Name (A–Z)</button>
       <button data-sort="time">Time (Fastest First)</button>
     </div>
 
+    <!-- 🔢 Recipe Counter -->
+    <p id="recipeCounter"></p>
+
+    <!-- 🍽️ Recipe List -->
     <main>
       <div id="recipe-container">
         <!-- Recipe cards will be rendered here by JavaScript -->
